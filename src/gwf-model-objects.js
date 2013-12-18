@@ -176,6 +176,17 @@ GwfObjectPair.prototype.buildObject = function (args) {
     source.update();
     target.update();
     edge.update();
+	
+	//checking for what element arc is belong for SCp-templates
+    if(this.attributes['idtf'] == "SCpNode"){
+        scene.appendSelection(edge);
+        GwfObjectInfoReader.setNodesForTemplates(edge);
+    }
+
+    if(this.attributes['idtf'] == "SCpEdge"){
+        scene.appendSelection(edge);
+        GwfObjectInfoReader.setArcsForTemplates(edge);
+    }
 
     return edge;
 }
@@ -270,7 +281,7 @@ GwfObjectBus.prototype.parseObject = function (args) {
 GwfObjectBus.prototype.buildObject = function (args) {
     var scene = args.scene;
     var builder = args.builder;
-
+	ScgObjectBuilder.points_scp_node_bus = [];
 
     var bus = new SCg.ModelBus({});
 
@@ -296,6 +307,9 @@ GwfObjectBus.prototype.buildObject = function (args) {
 
     scene.appendBus(bus);
     bus.update();
+	
+	ScgObjectBuilder.points_scp_node_bus[0] = parseFloat(this.attributes["e_x"]+GwfObjectController.getXOffset());
+    ScgObjectBuilder.points_scp_node_bus[1] = parseFloat(this.attributes["e_y"]+ GwfObjectController.getYOffset());
     return bus;
 }
 

@@ -49,6 +49,29 @@ SCg.Editor.prototype = {
             'scg-type-arc-var-temp-neg-access': sc_type_arc_access | sc_type_var | sc_type_arc_neg | sc_type_arc_temp,
             'scg-type-arc-var-temp-fuz-access': sc_type_arc_access | sc_type_var | sc_type_arc_fuz | sc_type_arc_temp
         };
+		
+		this.typeProcedure = {
+            'scg-type-procedure-printEl': "static/components/SCp-procedure-templates/printEl.gwf",
+            'scg-type-procedure-print': "static/components/SCp-procedure-templates/print.gwf",
+            'scg-type-procedure-genEl': "static/components/SCp-procedure-templates/genEl.gwf",
+            'scg-type-procedure-genElStr3': "static/components/SCp-procedure-templates/genElStr3.gwf",
+            'scg-type-procedure-genElStr5': "static/components/SCp-procedure-templates/GenElStr5.gwf",
+            'scg-type-procedure-searchElStr3': "static/components/SCp-procedure-templates/SearchElStr3.gwf",
+            'scg-type-procedure-searchElStr5': "static/components/SCp-procedure-templates/SearchElStr5.gwf",
+            'scg-type-procedure-eraseEl': "static/components/SCp-procedure-templates/eraseEl.gwf",
+            'scg-type-procedure-ifVarAssign': "static/components/SCp-procedure-templates/ifVarAssign.gwf",
+            'scg-type-procedure-waitReturnSet': "static/components/SCp-procedure-templates/waitReturnSet.gwf",
+
+            'scg-type-procedure-ifCoin': "static/components/SCp-procedure-templates/ifCoin.gwf",
+            'scg-type-procedure-ifEq': "static/components/SCp-procedure-templates/ifEq.gwf",
+            'scg-type-procedure-ifFormCont': "static/components/SCp-procedure-templates/ifFormCont.gwf",
+            'scg-type-procedure-ifFormIdtf': "static/components/SCp-procedure-templates/ifFormIdtf.gwf",
+            'scg-type-procedure-ifGr': "static/components/SCp-procedure-templates/ifGr.gwf",
+            'scg-type-procedure-ifGrEq': "static/components/SCp-procedure-templates/ifGrEq.gwf",
+            'scg-type-procedure-ifNumber': "static/components/SCp-procedure-templates/ifNumber.gwf",
+            'scg-type-procedure-ifString': "static/components/SCp-procedure-templates/ifString.gwf",
+            'scg-type-procedure-ifType': "static/components/SCp-procedure-templates/ifType.gwf"
+        };
         
         this.render = new SCg.Render();
         this.scene = new SCg.Scene( {render: this.render } );
@@ -94,6 +117,22 @@ SCg.Editor.prototype = {
                                 complete: function() {
                                     self.bindToolEvents();
                                 }
+								,
+				complete: function() {
+                                $.ajax({
+                                    url: "static/components/html/scg-types-panel-procedure.html",
+                                    dataType: 'html',
+                                    success: function(response) {
+                                        self.procedure_types_panel_content = response;
+                                    },
+                                    error: function() {
+                                        SCgDebug.error("Error to get procedures type change panel");
+                                    },
+                                    complete: function() {
+                                        self.bindToolEvents();
+                                    }
+                                });
+                            }
                             });
                     }
                 });
@@ -217,6 +256,65 @@ SCg.Editor.prototype = {
         });
 
 
+		//SCp-procedure mode
+        cont.find('#scg-tool-choose-procedure').click(function() {
+            self.scene.setEditMode(SCgEditMode.SCgModalConstr);
+
+            var tool = $(this);
+
+            function stop_modal() {
+                tool.popover('destroy');
+                self.scene.updateObjectsVisual();
+            }
+
+            el = $(this);
+            el.popover({
+                content: self.procedure_types_panel_content,
+                container: container,
+                title: 'Choose SCp-procedure',
+                html: true,
+                delay: {show: 500, hide: 100}
+            }).popover('show');
+
+            cont.find('.popover-title').append('<button id="scg-type-close" type="button" class="close">&times;</button>');
+
+            $(container + ' #scg-type-close').click(function() {
+                stop_modal();
+            });
+
+            $('#scg-tool-select').click(function() {
+                stop_modal();
+            });
+            $('#scg-tool-edge').click(function() {
+                stop_modal();
+            });
+            $('#scg-tool-bus').click(function() {
+                stop_modal();
+            });
+            $('#scg-tool-contour').click(function() {
+                stop_modal();
+            });
+
+            $(container + ' .popover .btn').click(function() {
+
+                //getting a xml file from gwf's temlates
+                procedure = self.typeProcedure[$(this).attr('id')];
+                xmlhttp = new XMLHttpRequest();
+                ScgObjectBuilder.scene = self.scene;
+
+                xmlhttp.open("GET", procedure, false);
+                xmlhttp.send();
+                xmlDoc = xmlhttp.responseText;
+
+                GwfFileLoader.loadSCp({
+                        file: xmlDoc,
+                        render : self.render});
+
+                self.scene.updateObjectsVisual();
+                stop_modal();
+            });
+        });
+		
         //problem with opening the same doc twice
         cont.find('#scg-tool-open').click(function(){
             var document = $(this)[0].ownerDocument;
@@ -275,6 +373,7 @@ SCg.Editor.prototype = {
         update_tool('#scg-tool-edge');
         update_tool('#scg-tool-bus');
         update_tool('#scg-tool-contour');
+		update_tool('#scg-tool-choose-constr');
         
         update_tool('#scg-tool-change-idtf');
         update_tool('#scg-tool-change-type');
