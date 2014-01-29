@@ -3,6 +3,7 @@ var SCgEditMode = {
     SCgModeEdge: 1,
     SCgModeBus: 2,
     SCgModeContour: 3,
+	SCgModalConstr: 4,
     
     /**
      * Check if specified mode is valid
@@ -33,6 +34,13 @@ SCg.Scene = function(options) {
     
     this.objects = {};
     this.edit_mode = SCgEditMode.SCgModeSelect;
+	
+	this.deleteAction = false;
+	this.selected_attributes = [];
+	
+	this.arcs_for_attribute = [];
+    this.nodes_for_attribute = [];
+    this.scpObj = [];
     
     // object, that placed under mouse
     this.pointed_object = null;
@@ -196,6 +204,29 @@ SCg.Scene.prototype = {
         this.appendBus(bus);
         
         return bus;
+    },
+	
+	/**
+     * Create edge between two specified objects
+     * @param {SCg.ModelObject} source Edge source object
+     * @param {SCg.ModelObject} target Edge target object
+     * @param {Integer} sc_type SC-type of edge
+     *
+     * @return Returns created edge
+     */
+	createEdgeDot: function(source, target, sc_type, source_d, target_d) {
+        var edge = new SCg.ModelEdge({
+            source: source,
+            target: target,
+            sc_type: sc_type ? sc_type : sc_type_edge_common
+        });
+
+        edge.source_dot = parseFloat(source_d);
+        edge.target_dot = parseFloat(target_d);
+
+        this.appendEdge(edge);
+
+        return edge;
     },
     
     /**
@@ -372,11 +403,90 @@ SCg.Scene.prototype = {
             
             this.updateObjectsVisual();
         }
+		
+		// Add or remove selection from arcs if we are in the SCp-procedure mode,
+        // removing if not
+        if (this.edit_mode == SCgEditMode.SCgModalConstr) {
+
+            for(var i=0;i<this.scpObj.length;i++){
+                if(this.scpObj[i] instanceof SCg.ModelNode){
+                this.moveSCpMode(this.scpObj[i]);
+                    break;
+                }
+
+            }
+            this.setSCpArcs();
+            this.setSCpNodes();
+            for(var i=0;i<this.arcs_for_attribute.length;i++){
+                if(!this.arcs_for_attribute[i].is_selected){
+                    this.appendSelection(this.arcs_for_attribute[i]);
+                }
+            }
+            for(var i=0;i<this.nodes_for_attribute.length;i++){
+                if(!this.nodes_for_attribute[i].is_selected){
+                    this.appendSelection(this.nodes_for_attribute[i]);
+                }
+            }
+            this.render.update();
+            this.updateObjectsVisual();
+        }
+        else{
+            this.setSCpArcs();
+            this.setSCpNodes();
+            for(var i=0;i<this.arcs_for_attribute.length;i++){
+                if(this.arcs_for_attribute[i].is_selected){
+                this.removeSelection(this.arcs_for_attribute[i]);
+                }
+            }
+            for(var i=0;i<this.nodes_for_attribute.length;i++){
+                if(this.nodes_for_attribute[i].is_selected){
+                this.removeSelection(this.nodes_for_attribute[i]);
+                }
+            }
+
+            if(this.selected_attributes.length != 0)   {
+                this.deleteAttributesConstrMode();
+            }
+
+        }
         
         if (this.edit_mode == SCgEditMode.SCgModeEdge || this.edit_mode == SCgEditMode.SCgModeBus 
             || this.edit_mode == SCgEditMode.SCgModeContour) {
             this.render.updateDragLine();
         }
+    },
+	
+	/**
+     * Moving the template when loaded  in SCp-procedure mode
+     * * @param {Object} for moving templates relative to the object
+     */
+    moveSCpMode: function(obj){
+
+        var posObj = obj.position;
+        var raznX = this.mouse_pos.x - posObj.x;
+        var raznY = this.mouse_pos.y - posObj.y;
+
+        if(this.scpObj != 0){
+            for(var i=0;i<this.scpObj.length;i++){
+
+                if(this.scpObj[i] instanceof SCg.ModelNode){
+                    var pos = this.scpObj[i].position;
+                    var xres = pos.x + raznX;
+                    var yres = pos.y + raznY;
+
+                    this.scpObj[i].setPosition(new SCg.Vector3(xres, yres, 0));
+                }
+
+                if(this.scpObj[i] instanceof SCg.ModelBus){
+                    ScgObjectBuilder.points_scp_node_bus[0] = ScgObjectBuilder.points_scp_node_bus[0] + raznX;
+                    ScgObjectBuilder.points_scp_node_bus[1] = ScgObjectBuilder.points_scp_node_bus[1] + raznY;
+                    this.scpObj[i].setPoints([{x: ScgObjectBuilder.points_scp_node_bus[0], y: ScgObjectBuilder.points_scp_node_bus[1]}]);
+                }
+                this.scpObj[i].update();
+            }
+            this.updateRender();
+        }
+        this.updateRender();
     },
     
     onMouseDown: function(x, y) {
@@ -402,7 +512,7 @@ SCg.Scene.prototype = {
         
         if (this.modal != SCgModalMode.SCgModalNone) return; // do nothing
         
-        if (!this.pointed_object)
+        if (!this.pointed_object && this.edit_mode != SCgEditMode.SCgModalConstr)
             this.clearSelection();
 
         this.focused_object = null;
@@ -421,7 +531,32 @@ SCg.Scene.prototype = {
         }
     },
     
-    
+     /**
+     * Function for deleting attributes from SCp-template
+     */
+    deleteAttributesConstrMode: function(){
+        for(var i=0;i<this.selected_attributes.length;i++){
+
+            if(!this.selected_attributes[i].is_selected){
+                if(this.selected_attributes[i+1].is_selected){
+                this.removeSelection(this.selected_attributes[i+1]);
+
+                }
+                ++i;
+            }
+        }
+        for(var i=0;i<this.selected_attributes.length;i++){
+            if(this.selected_attributes[i].is_selected){
+                this.removeObject(this.selected_attributes[i]);
+            }
+        }
+
+        this.deleteAction = false;
+        this.selected_attributes = [];
+        this.updateObjectsVisual();
+        this.updateRender();
+    },
+	
     onMouseOverObject: function(obj) {
         if (this.modal != SCgModalMode.SCgModalNone) return; // do nothing
         
@@ -443,6 +578,10 @@ SCg.Scene.prototype = {
             if (obj instanceof SCg.ModelContour || obj instanceof SCg.ModelBus) {
                 obj.previousPoint = new SCg.Vector2(this.mouse_pos.x, this.mouse_pos.y);
             }
+        }
+		
+		if (this.edit_mode == SCgEditMode.SCgModalConstr){
+            this.focused_object = obj;
         }
 
         if (this.edit_mode == SCgEditMode.SCgModeEdge) {
@@ -506,6 +645,47 @@ SCg.Scene.prototype = {
                 this.updateObjectsVisual();
             }
 
+            this.focused_object = null;
+        }
+		
+		//deleting or append selection of elements in SCp-procedure mode
+        if (this.edit_mode == SCgEditMode.SCgModalConstr){
+
+            this.scpObj = [];
+            if (this.deleteAction) {
+                if(obj instanceof  SCg.ModelNode ){
+                    for(idx in this.selected_attributes)
+                    {
+
+                        if(obj == this.selected_attributes[idx]) {
+                            if(obj.is_selected){
+                                this.removeSelection(obj);
+                            }
+                            else{
+                                this.appendSelection(obj);
+                            }
+                        }
+                    }
+
+                }
+
+                //calling function for deleting attributes
+                if((obj instanceof  SCg.ModelEdge || obj instanceof  SCg.ModelBus) && this.selected_attributes.length!=0){
+                    this.deleteAttributesConstrMode();
+                }
+                this.updateObjectsVisual();
+                this.updateRender();
+            }
+
+            //calling function for building attributes for arc in SCp-template
+            if (obj == this.focused_object && obj instanceof SCg.ModelEdge && obj.is_selected && !this.deleteAction) {
+
+                this.setSCpArcs();
+                this.setSCpNodes();
+                SCpTemplatesCeateAttributes.paintAttributes(this.nodes_for_attribute,this.arcs_for_attribute,this,obj,this.mouse_pos.x,this.mouse_pos.y);
+                this.updateObjectsVisual();
+                this.updateRender();
+            }
             this.focused_object = null;
         }
     },
@@ -664,6 +844,25 @@ SCg.Scene.prototype = {
         this.drag_line_points.splice(0, this.drag_line_points.length);
         this.updateRender();
         this.render.updateDragLine();
+    },
+	
+	//getting elemnts for SCp-template
+    setSCpArcs: function(){
+        this.arcs_for_attribute = [];
+
+        this.arcs_for_attribute = GwfObjectInfoReader.getArcsForTemplates();
+    },
+
+    setSCpNodes: function(){
+        this.nodes_for_attribute = [];
+
+        this.nodes_for_attribute = GwfObjectInfoReader.getNodesForTemplates();
+    },
+
+    setSCpObj: function(){
+        this.scpObj = [];
+
+        this.scpObj = ScgObjectBuilder.scp_objects;
     },
 
     // ------------- events -------------

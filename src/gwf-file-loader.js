@@ -28,5 +28,19 @@ GwfFileLoader = {
         reader.readAsText(args["file"], "CP1251");
 //        reader.readAsText(args["file"]);
         return true;
+    },
+	
+	//function of receiving and sending the file to parse and build a template
+    loadSCp: function (args) {
+
+        var is_file_correct = GwfObjectInfoReader.read(args["file"]);
+
+        if (is_file_correct != false) {
+            ScgObjectBuilder.buildObjects(GwfObjectInfoReader.objects_info);
+            args["render"].update();
+        } else
+            GwfObjectInfoReader.printErrors();
+
+        return true;
     }
 }
