@@ -158,6 +158,31 @@ SCg.Editor.prototype = {
                 } 
                 
             });
+
+            input.typeahead({
+                    minLength: 1,
+                    highlight: true,
+                    hint: true
+                },
+                {
+                    name: 'idtf',
+                    source: function(query, cb) {
+                        var scg_objects = self._collectIdtfs();
+
+                        var matched_objects = [];
+
+                        var pattern = new RegExp(query, 'i');
+
+                        $.each(scg_objects, function(i, scg_object){
+                            if(scg_object.text && pattern.test(scg_object.text)){
+                                matched_objects.push(scg_object);
+                            }
+                        });
+                        cb(matched_objects);
+                    },
+                    displayKey: 'text'
+                }
+            )
             
             // process controls
             $(container + ' #scg-change-idtf-apply').click(function() {
@@ -282,7 +307,19 @@ SCg.Editor.prototype = {
         update_tool('#scg-tool-zoomin');
         update_tool('#scg-tool-zoomout');
     },
-    
+
+    _collectIdtfs : function(){
+        var selected_obj = this.scene.selected_objects[0];
+        var relative_objs = undefined;
+
+        if(selected_obj instanceof SCg.ModelNode){
+            relative_objs = this.scene.nodes;
+        }
+        if(!relative_objs)
+            return [];
+        return relative_objs;
+    },
+
     // -------------------------------- Helpers ------------------
     /**
      * Change specified tool state to disabled
