@@ -17,7 +17,55 @@ var scgViewerWindow = function(sandbox){
     this.sandbox = sandbox;
     this.tree = new SCg.Tree();
     this.editor = new SCg.Editor();
-    this.editor.init({containerId: sandbox.container});
+
+    var autocompletionVariants = function(keyword, callback, args){
+        var modifiedCallback = function(result){
+            var contains = function(value, array){
+                var len = array.length;
+                while(len--){
+                    if(array[len].name === value.name)
+                        return true
+                }
+                return false;
+            }
+
+            var matches = [];
+            matches = args.editor.collectIdtfs(keyword);
+
+            $.each(result, function(index, item){
+                if(!contains(item, matches))
+                    matches.push(item);
+            })
+
+            callback(matches);
+        }
+
+        SCWeb.core.Server.findIdentifiersSubStr(keyword, function(data) {
+            var keys = [];
+            for (key in data) {
+                var list = data[key];
+                for (idx in list) {
+                    var value = list[idx]
+                    keys.push(
+                        {
+                            name: value[1],
+                            type: 'remote'
+                        }
+                    );
+                }
+            }
+            modifiedCallback(keys);
+        });
+
+
+    }
+    this.editor.init(
+        {
+            containerId: sandbox.container,
+            autocompletionVariants : autocompletionVariants
+        }
+    );
+
 
     this.receiveData = function(data) {
         var dfd = new jQuery.Deferred();
