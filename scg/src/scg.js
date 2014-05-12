@@ -58,6 +58,10 @@ SCg.Editor.prototype = {
         this.render.init(params);
         
         this.containerId = params.containerId;
+
+        if(params.autocompletionVariants)
+            this.autocompletionVariants = params.autocompletionVariants;
+
         this.initUI();
         
     },
@@ -158,6 +162,9 @@ SCg.Editor.prototype = {
                 } 
                 
             });
+
+            if(self.autocompletionVariants)
+                self._enableAutocomplete(input);
             
             // process controls
             $(container + ' #scg-change-idtf-apply').click(function() {
@@ -282,7 +289,96 @@ SCg.Editor.prototype = {
         update_tool('#scg-tool-zoomin');
         update_tool('#scg-tool-zoomout');
     },
-    
+
+    _enableAutocomplete : function (element){
+        var self = this;
+
+        var types = {
+            local : function(text){
+                return "[" + text + "]";
+            },
+            remote : function(text){
+                return "<" + text + ">";
+            }
+
+        };
+
+        element.typeahead({
+                minLength: 1,
+                highlight: true,
+                hint: true
+            },
+            {
+                name: 'idtf',
+                source: function(str, callback) {
+                    self.autocompletionVariants(str, callback, {editor: self});
+                },
+                displayKey: 'name',
+                templates: {
+                    suggestion : function(item){
+                        var decorator = types[item.type];
+                        if(decorator)
+                            return decorator(item.name);
+
+                        return item.name;
+                    }
+                }
+            }
+        );
+    },
+
+    collectIdtfs : function(keyword){
+        var self = this;
+        var selected_obj = self.scene.selected_objects[0];
+        var relative_objs = undefined;
+
+        if(selected_obj instanceof SCg.ModelNode){
+            relative_objs = self.scene.nodes;
+        }
+        if(!relative_objs)
+            return [];
+
+        var match = function(text){
+            var pattern = new RegExp(keyword, 'i');
+            if(text && pattern.test(text))
+                return true;
+            return false;
+        }
+
+        var contains = function(value, array){
+            var len = array.length;
+            while(len--){
+                if(array[len].name === value.name)
+                    return true
+            }
+            return false;
+        }
+        var matches = [];
+        $.each(relative_objs, function(index, item){
+            if(match(item['text']))
+            {
+                var obj = {
+                    name: item['text'],
+                    type: 'local'
+                }
+                if(!contains(obj, matches))
+                    matches.push(obj);
+            }
+
+        });
+        return matches;
+    },
+
+    /**
+     * function(keyword, callback, args)
+     * here is default implementation
+     * */
+
+    autocompletionVariants : function(keyword, callback, args){
+        var self = this;
+        callback(self.collectIdtfs(keyword));
+    },
+
     // -------------------------------- Helpers ------------------
     /**
      * Change specified tool state to disabled
