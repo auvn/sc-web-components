@@ -8,7 +8,17 @@ SCg.Render.prototype = {
 
     init: function(params) {
         this.containerId = params.containerId;
-        this.d3_drawer = d3.select('#' + this.containerId).append("svg:svg").attr("pointer-events", "all").attr("width", '100%').attr("height", '100%');
+        
+        // to have scrolling bars not displayed at the start of the application
+        // we make it a little less than scgViewer
+        var DRAWER_VIEWPORT_OFFSET = 20;
+        
+        var scgViewer = $('#scg-viewer');
+        this.d3_drawer = d3.select('#' + this.containerId)
+            .append("svg:svg")
+            .attr("pointer-events", "all")
+            .attr("width", scgViewer.width() - DRAWER_VIEWPORT_OFFSET)
+            .attr("height", scgViewer.height() - DRAWER_VIEWPORT_OFFSET);
         
         d3.select('#' + this.containerId);//.attr('style', 'display: block');
         
