@@ -114,6 +114,30 @@ var scgViewerWindow = function(sandbox){
         alert(this.triples.length);
     };
 
+    this._loadGwfFromMemory = function(idtf){
+        var self = this;
+        SCWeb.core.Server.resolveScAddr([idtf], function(addr){
+            if(!addr)
+                return;
+
+            SCWeb.core.Server.getLinkContent(
+                addr[idtf],
+                function(content){
+                    if(!content)
+                        return;
+                    var is_file_correct = GwfObjectInfoReader.read(content);
+                    if (is_file_correct != false) {
+                        ScgObjectBuilder.buildObjects(GwfObjectInfoReader.objects_info);
+                        self.editor.render.update();
+                    } else
+                        GwfObjectInfoReader.printErrors();
+                },
+                function(err){
+                    console.log(err);
+                })
+        })
+    };
+    
     this._buildGraph = function(data) {
         
         var elements = {};

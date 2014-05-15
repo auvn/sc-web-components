@@ -47,7 +47,10 @@ GwfObjectInfoReader = {
     },
 
     read: function (strs) {
-
+	strs = strs.replace(
+            "<?xml version=\"1.0\" encoding=\"windows-1251\"?>",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        )
         var xml_doc = (new DOMParser()).parseFromString(strs, "text/xml");
 
         var root = xml_doc.documentElement;

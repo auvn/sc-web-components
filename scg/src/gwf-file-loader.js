@@ -8,12 +8,7 @@ GwfFileLoader = {
         var is_file_correct;
         reader.onload = function (e) {
             var text = e.target.result;
-//            console.log(text);
-//            text = text.replace("windows-1251","utf-8");
-            is_file_correct = GwfObjectInfoReader.read(text.replace(
-                "<?xml version=\"1.0\" encoding=\"windows-1251\"?>",
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-            ));
+            is_file_correct = GwfObjectInfoReader.read(text);
 
         }
 
@@ -26,7 +21,6 @@ GwfFileLoader = {
 
         }
         reader.readAsText(args["file"], "CP1251");
-//        reader.readAsText(args["file"]);
         return true;
     }
 }

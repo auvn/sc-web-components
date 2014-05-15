@@ -53,8 +53,10 @@ SCg.Editor.prototype = {
         this.render = new SCg.Render();
         this.scene = new SCg.Scene( {render: this.render } );
         this.scene.init();
+	
+        ScgObjectBuilder.scene = this.scene;
         
-        this.render.scene = this.scene;
+	this.render.scene = this.scene;
         this.render.init(params);
         
         this.containerId = params.containerId;
